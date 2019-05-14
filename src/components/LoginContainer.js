@@ -44,6 +44,8 @@ export default class LoginContainer extends Component {
                 localStorage.setItem('fName', data.user.fName);
                 localStorage.setItem('lName', data.user.lName);
                 localStorage.setItem('email', data.user.email);
+                localStorage.setItem('isLogged', data.success);
+                localStorage.setItem('userID', data._id);
 
                 swal("Welcome " + localStorage.getItem('fName'), data.message, "success").then(() => {
                     window.location.href = 'http://localhost:3000/home';

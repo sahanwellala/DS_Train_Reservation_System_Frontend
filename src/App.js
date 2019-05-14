@@ -17,7 +17,9 @@ function App() {
             <Router>
                 <NavBarContainer/>
                 {/*<TrainSearchForm/>*/}
-                <Route path="/home" exact component={TrainSearchForm}/>
+                <Route path="/home" exact
+                       component={() => localStorage.getItem('isLogged') === "true" ? <TrainSearchForm/> :
+                           <LoginContainer/>}/>
                 <Route path="/" exact component={LoginContainer}/>
                 <Route path="/register" exact component={RegisterContainer}/>
                 <Route path="/bookings/:id/:date" exact component={Booking}/>

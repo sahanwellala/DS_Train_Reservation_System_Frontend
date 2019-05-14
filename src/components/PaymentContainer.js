@@ -1,7 +1,8 @@
 import React, {Component} from 'react'
 import Card from "react-bootstrap/Card";
 import Button from "react-bootstrap/Button";
-import Fade from "react-bootstrap/Fade";
+import axios from 'axios';
+import swal from "sweetalert";
 
 export default class PaymentContainer extends Component {
     constructor(props) {
@@ -15,7 +16,10 @@ export default class PaymentContainer extends Component {
             cvcNum: '',
             exDate: '',
             mobileNum: '',
-            pinNum: ''
+            pinNum: '',
+            nic: '',
+            discount: 'no',
+            isNICInvalid: 'no'
         };
         this.onCreditCardSelected = this.onCreditCardSelected.bind(this);
         this.onMobilePaySelected = this.onMobilePaySelected.bind(this);
@@ -27,6 +31,8 @@ export default class PaymentContainer extends Component {
         this.onCardNumberChange = this.onCardNumberChange.bind(this);
         this.onCVCNumberChange = this.onCVCNumberChange.bind(this);
         this.onExpirationDateChange = this.onExpirationDateChange.bind(this);
+        this.onNICNumberChange = this.onNICNumberChange.bind(this);
+        this.onGovEmployeeValidation = this.onGovEmployeeValidation.bind(this);
         this.onPaymentFormSubmit = this.onPaymentFormSubmit.bind(this);
     }
 
@@ -50,7 +56,8 @@ export default class PaymentContainer extends Component {
 
     onUserIsNotGovernment(e) {
         this.setState({
-            userType: 'nonGov'
+            userType: 'nonGov',
+            totalBill: localStorage.getItem('total')
         })
     }
 
@@ -91,9 +98,94 @@ export default class PaymentContainer extends Component {
         })
     }
 
+    onNICNumberChange(e) {
+        this.setState({
+            nic: e.target.value
+        });
+    }
+
+    onGovEmployeeValidation() {
+        console.log('checking gov employee');
+        console.log(this.state.nic);
+        if (this.state.userType === 'gov') {
+            if (this.state.nic) {
+                const nic = {
+                    nic: this.state.nic
+                };
+                axios.post('http://localhost:4000/gov/employee/validate', nic).then(res => {
+                    let data = res.data;
+                    console.log(data);
+                    if (data.success === true) {
+                        let newAmount = parseFloat(localStorage.getItem('total')) * 0.95;
+                        this.setState({
+                            discount: 'yes',
+                            totalBill: newAmount,
+                            isNICInvalid: 'no'
+                        });
+
+                    } else {
+                        console.log('Calling No')
+                        this.setState({
+                            discount: 'no',
+                            totalBill: localStorage.getItem('total'),
+                            isNICInvalid: 'yes'
+                        })
+                    }
+                })
+            }
+        } else {
+            this.setState({
+                discount: 'no',
+                totalBill: localStorage.getItem('total')
+            })
+        }
+    }
+
     onPaymentFormSubmit(e) {
         e.preventDefault();
+        console.log('From button call this methods')
+        if (this.state.paymentType === 'credit card') {
+            const paymentDetails = {
+                cardName: this.state.cardName,
+                cardNum: this.state.cardNum,
+                cvcNum: this.state.cvcNum,
+                exDate: this.state.cvcNum,
+                totalBill: this.state.totalBill
+            };
+            console.log(paymentDetails);
+        } else if (this.state.paymentType === 'mobile') {
+            const paymentDetails = {
+                mobileNum: this.state.mobileNum,
+                pinNum: this.state.pinNum,
+                amount: this.state.totalBill
+            };
 
+            axios.post('http://localhost:4000/dialog/bill/auth', paymentDetails).then(res => {
+                let data = res.data;
+                if (data.success === 'true') {
+                    swal('Ticket Reserved !', data.message, "success").then(() => {
+                        //To send an Email Confirming the Payment
+                        let to = localStorage.getItem('email');
+                        let subject = 'Train Ticket Reservation Successful ';
+                        let content = 'Dear ' + localStorage.getItem('fName') + '<br/>' + 'You have successfully ' +
+                            'Completed the payment process and following is the details of you reservation <br/> ' +
+                            'Name : ' + localStorage.getItem('fName') + '<br/>' + 'This is a System generated Message so no signature is needed . <br/> Thank you !';
+
+                        let emailData = {
+                            to,
+                            subject,
+                            content
+                        };
+                        axios.post('http://localhost:4000/bookings/sendMail', emailData).then(res => {
+                            let data = res.data;
+                            swal("Email Sent", 'Confirmation email is sent to : ' + localStorage.getItem('email'), "success").then(() => {
+
+                            })
+                        })
+                    })
+                }
+            })
+        }
 
     }
 
@@ -158,10 +250,35 @@ export default class PaymentContainer extends Component {
             if (this.state.userType === 'gov') {
                 return <div>
                     <label style={{float: "left"}}>NIC Number : </label>
-                    <input type="text" className="form-control" onChange={this.onCVCNumberChange} required={true}
-                           value={this.state.cvcNum}
+                    {nicWrong()}
+                    <input type="text" className="form-control" onChange={this.onNICNumberChange} required={true}
+                           value={this.state.nic}
+                           onBlur={this.onGovEmployeeValidation}
+                           onClick={this.onGovEmployeeValidation}
+                           onFocus={this.onGovEmployeeValidation}
                            title="Please enter the National ID card Number"/>
+                    {discount()}
                 </div>
+            }
+        };
+
+        let nicWrong = () => {
+            if (this.state.isNICInvalid === 'yes') {
+                return <div>
+                    <p style={{color: "red"}}>Invalid Government Employeee NIC number </p>
+                </div>
+            }
+        };
+
+        let discount = () => {
+            if (this.state.discount === 'yes') {
+                return <div>
+                    <label style={{float: "left"}}>Discount : </label>
+                    <input type="text" className="form-control" readOnly={true} required={true}
+                           value="5% OFF From Total Amount"/>
+                </div>
+            } else if (this.state.discount === 'no') {
+                return null;
             }
         };
 

@@ -16,6 +16,7 @@ export default class NavBarContainer extends Component {
         localStorage.removeItem('fName');
         localStorage.removeItem('lName');
         localStorage.removeItem('email');
+        localStorage.removeItem('isLogged');
 
         swal("See you Soon " + fName, 'You are Successfully logged out !', "success").then(() => {
             window.location.href = 'http://localhost:3000';
@@ -31,7 +32,7 @@ export default class NavBarContainer extends Component {
                     marginRight: "10px"
                 }}/>Train Reservation</Navbar.Brand>
             } else {
-                return  <Navbar.Brand href="/" style={{fontFamily: 'Akbaal'}}><img src={logo} style={{
+                return <Navbar.Brand href="/" style={{fontFamily: 'Akbaal'}}><img src={logo} style={{
                     width: "36px",
                     height: "36px",
                     marginRight: "10px"
