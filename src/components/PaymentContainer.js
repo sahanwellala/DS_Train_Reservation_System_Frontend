@@ -34,6 +34,7 @@ export default class PaymentContainer extends Component {
         this.onNICNumberChange = this.onNICNumberChange.bind(this);
         this.onGovEmployeeValidation = this.onGovEmployeeValidation.bind(this);
         this.onPaymentFormSubmit = this.onPaymentFormSubmit.bind(this);
+        this.clearFields = this.clearFields.bind(this);
     }
 
     onCreditCardSelected(e) {
@@ -124,7 +125,7 @@ export default class PaymentContainer extends Component {
                         });
 
                     } else {
-                        console.log('Calling No')
+                        console.log('Calling No');
                         this.setState({
                             discount: 'no',
                             totalBill: localStorage.getItem('total'),
@@ -143,11 +144,28 @@ export default class PaymentContainer extends Component {
         }
     }
 
+    clearFields() {
+        this.setState({
+            totalBill: localStorage.getItem('total'),
+            paymentType: 'credit card',
+            userType: 'nonGov',
+            cardName: '',
+            cardNumber: '',
+            cvcNum: '',
+            exDate: '',
+            mobileNum: '',
+            pinNum: '',
+            nic: '',
+            discount: 'no',
+            isNICInvalid: 'no'
+        })
+    }
+
     onPaymentFormSubmit(e) {
         e.preventDefault();
         console.log('From button call this methods');
         if (this.state.paymentType === 'credit card') {
-            console.log('Credit Card Pay')
+            console.log('Credit Card Pay');
             const paymentDetails = {
                 cardName: this.state.cardName,
                 cardNum: this.state.cardNumber,
@@ -156,8 +174,9 @@ export default class PaymentContainer extends Component {
                 totalBill: this.state.totalBill
             };
             console.log(paymentDetails);
+            //http://localhost:4000/sampath/creditCard/validation
 
-            axios.post('http://localhost:4000/sampath/creditCard/validation', paymentDetails).then(res => {
+            axios.post('http://localhost:8280/profile/validate/sampath', paymentDetails).then(res => {
                 let data = res.data;
                 if (data.success) {
                     swal('Ticket Reserved !', data.message, "success").then(() => {
@@ -172,7 +191,10 @@ export default class PaymentContainer extends Component {
 
                         };
                         console.log(bookingData);
-                        axios.post('http://localhost:4000/bookings/add', bookingData).then((res) => {
+
+                        //http://localhost:4000/bookings/add
+
+                        axios.post('http://localhost:8280/profile/bookings/add', bookingData).then((res) => {
 
                             let bookingData = res.data;
                             console.log(bookingData);
@@ -197,10 +219,13 @@ export default class PaymentContainer extends Component {
                                 subject,
                                 content
                             };
-                            axios.post('http://localhost:4000/bookings/sendMail', emailData).then(res => {
+                            //http://localhost:4000/bookings/sendMail
+
+                            axios.post('http://localhost:8280/profile/mail', emailData).then(res => {
                                 let data = res.data;
                                 swal("Email Sent", 'Confirmation email is sent to : ' + localStorage.getItem('email'), "success").then(() => {
-
+                                    this.clearFields();
+                                    window.location.href = 'http://localhost:3000/home';
                                 })
                             })
                         })
@@ -221,37 +246,57 @@ export default class PaymentContainer extends Component {
                 amount: this.state.totalBill
             };
 
-            axios.post('http://localhost:4000/dialog/bill/auth', paymentDetails).then(res => {
+            //http://localhost:4000/dialog/bill/auth
+
+            axios.post('http://localhost:8280/profile/dialog/validate', paymentDetails).then(res => {
                 let data = res.data;
                 console.log(data);
                 if (data.success) {
                     console.log('Email Sending method invokes');
                     swal('Ticket Reserved !', data.message, "success").then(() => {
-                        //To send an Email Confirming the Payment
-                        let to = localStorage.getItem('email');
-                        let subject = 'Train Ticket Reservation Successful ';
-                        let content = 'Hi ' + localStorage.getItem('fName') + '<br/>' +
-                            'You have successfully ' +
-                            'completed the payment process and following are the details of you reservation. <br/> ' +
-                            'Name : ' + localStorage.getItem('fName') + ' ' + localStorage.getItem('lName') + '<br/>' +
-                            'Start Station : ' + localStorage.getItem('start') + '<br/>' +
-                            'End Station : ' + localStorage.getItem('end') + '<br/>' +
-                            'Date : ' + localStorage.getItem('date') + '<br/>' +
-                            'Qty : ' + localStorage.getItem('qty') + '<br/>' +
-                            '<b>Total Amount : Rs.' + this.state.totalBill.toString() + '</b>' +
-                            '<br/>' + '<br/>' +
-                            'This is a System generated Message so no signature is needed . <br/> ' +
-                            'Thank you !';
 
-                        let emailData = {
-                            to,
-                            subject,
-                            content
+                        const bookingData = {
+                            userID: localStorage.getItem('userID'),
+                            start: localStorage.getItem('start'),
+                            end: localStorage.getItem('end'),
+                            date: localStorage.getItem('date'),
+                            qty: localStorage.getItem('qty'),
+                            total: this.state.totalBill
+
                         };
-                        axios.post('http://localhost:4000/bookings/sendMail', emailData).then(res => {
-                            let data = res.data;
-                            swal("Email Sent", 'Confirmation email is sent to : ' + localStorage.getItem('email'), "success").then(() => {
-                                console.log(data);
+                        console.log(bookingData);
+                        axios.post('http://localhost:8280/profile/bookings/add', bookingData).then((res) => {
+
+
+                            //To send an Email Confirming the Payment
+                            let to = localStorage.getItem('email');
+                            let subject = 'Train Ticket Reservation Successful ';
+                            let content = 'Hi ' + localStorage.getItem('fName') + '<br/>' +
+                                'You have successfully ' +
+                                'completed the payment process and following are the details of you reservation. <br/> ' +
+                                'Name : ' + localStorage.getItem('fName') + ' ' + localStorage.getItem('lName') + '<br/>' +
+                                'Start Station : ' + localStorage.getItem('start') + '<br/>' +
+                                'End Station : ' + localStorage.getItem('end') + '<br/>' +
+                                'Date : ' + localStorage.getItem('date') + '<br/>' +
+                                'Qty : ' + localStorage.getItem('qty') + '<br/>' +
+                                '<b>Total Amount : Rs.' + this.state.totalBill.toString() + '</b>' +
+                                '<br/>' + '<br/>' +
+                                'This is a System generated Message so no signature is needed . <br/> ' +
+                                'Thank you !';
+
+                            let emailData = {
+                                to,
+                                subject,
+                                content
+                            };
+                            axios.post('http://localhost:8280/profile/mail', emailData).then(res => {
+                                let data = res.data;
+                                swal("Email Sent", 'Confirmation email is sent to : ' + localStorage.getItem('email'), "success").then(() => {
+                                    console.log(data);
+                                    this.clearFields();
+                                    window.location.href = 'http://localhost:3000/home';
+
+                                })
                             })
                         })
                     })
