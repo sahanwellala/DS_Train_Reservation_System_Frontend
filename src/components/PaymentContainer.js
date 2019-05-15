@@ -138,21 +138,82 @@ export default class PaymentContainer extends Component {
                 discount: 'no',
                 totalBill: localStorage.getItem('total')
             })
+
+
         }
     }
 
     onPaymentFormSubmit(e) {
         e.preventDefault();
-        console.log('From button call this methods')
+        console.log('From button call this methods');
         if (this.state.paymentType === 'credit card') {
+            console.log('Credit Card Pay')
             const paymentDetails = {
                 cardName: this.state.cardName,
-                cardNum: this.state.cardNum,
+                cardNum: this.state.cardNumber,
                 cvcNum: this.state.cvcNum,
                 exDate: this.state.cvcNum,
                 totalBill: this.state.totalBill
             };
             console.log(paymentDetails);
+
+            axios.post('http://localhost:4000/sampath/creditCard/validation', paymentDetails).then(res => {
+                let data = res.data;
+                if (data.success) {
+                    swal('Ticket Reserved !', data.message, "success").then(() => {
+
+                        const bookingData = {
+                            userID: localStorage.getItem('userID'),
+                            start: localStorage.getItem('start'),
+                            end: localStorage.getItem('end'),
+                            date: localStorage.getItem('date'),
+                            qty: localStorage.getItem('qty'),
+                            total: this.state.totalBill
+
+                        };
+                        console.log(bookingData);
+                        axios.post('http://localhost:4000/bookings/add', bookingData).then((res) => {
+
+                            let bookingData = res.data;
+                            console.log(bookingData);
+
+                            //To send an Email Confirming the Payment
+                            let to = localStorage.getItem('email');
+                            let subject = 'Train Ticket Reservation Successful ';
+                            let content = 'Hi ' + localStorage.getItem('fName') + '<br/>' + '<br/>' +
+                                'You have successfully ' +
+                                'completed the payment process and following are the details of you reservation. <br/> ' +
+                                'Name : ' + localStorage.getItem('fName') + ' ' + localStorage.getItem('lName') + '<br/>' +
+                                'Start Station : ' + localStorage.getItem('start') + '<br/>' +
+                                'End Station : ' + localStorage.getItem('end') + '<br/>' +
+                                'Date : ' + localStorage.getItem('date') + '<br/>' +
+                                'Qty : ' + localStorage.getItem('qty') + '<br/>' +
+                                '<b>Total Amount : Rs.' + this.state.totalBill.toString() + '</b>' +
+                                '<br/>' + '<br/>' +
+                                'This is a System generated Message so no signature is needed . <br/> Thank you !';
+
+                            let emailData = {
+                                to,
+                                subject,
+                                content
+                            };
+                            axios.post('http://localhost:4000/bookings/sendMail', emailData).then(res => {
+                                let data = res.data;
+                                swal("Email Sent", 'Confirmation email is sent to : ' + localStorage.getItem('email'), "success").then(() => {
+
+                                })
+                            })
+                        })
+                    })
+                } else {
+                    swal("Oops!", data.message, "error")
+                        .then(() => {
+
+                        });
+                }
+            });
+
+
         } else if (this.state.paymentType === 'mobile') {
             const paymentDetails = {
                 mobileNum: this.state.mobileNum,
@@ -162,14 +223,25 @@ export default class PaymentContainer extends Component {
 
             axios.post('http://localhost:4000/dialog/bill/auth', paymentDetails).then(res => {
                 let data = res.data;
-                if (data.success === 'true') {
+                console.log(data);
+                if (data.success) {
+                    console.log('Email Sending method invokes');
                     swal('Ticket Reserved !', data.message, "success").then(() => {
                         //To send an Email Confirming the Payment
                         let to = localStorage.getItem('email');
                         let subject = 'Train Ticket Reservation Successful ';
-                        let content = 'Dear ' + localStorage.getItem('fName') + '<br/>' + 'You have successfully ' +
-                            'Completed the payment process and following is the details of you reservation <br/> ' +
-                            'Name : ' + localStorage.getItem('fName') + '<br/>' + 'This is a System generated Message so no signature is needed . <br/> Thank you !';
+                        let content = 'Hi ' + localStorage.getItem('fName') + '<br/>' +
+                            'You have successfully ' +
+                            'completed the payment process and following are the details of you reservation. <br/> ' +
+                            'Name : ' + localStorage.getItem('fName') + ' ' + localStorage.getItem('lName') + '<br/>' +
+                            'Start Station : ' + localStorage.getItem('start') + '<br/>' +
+                            'End Station : ' + localStorage.getItem('end') + '<br/>' +
+                            'Date : ' + localStorage.getItem('date') + '<br/>' +
+                            'Qty : ' + localStorage.getItem('qty') + '<br/>' +
+                            '<b>Total Amount : Rs.' + this.state.totalBill.toString() + '</b>' +
+                            '<br/>' + '<br/>' +
+                            'This is a System generated Message so no signature is needed . <br/> ' +
+                            'Thank you !';
 
                         let emailData = {
                             to,
@@ -179,10 +251,15 @@ export default class PaymentContainer extends Component {
                         axios.post('http://localhost:4000/bookings/sendMail', emailData).then(res => {
                             let data = res.data;
                             swal("Email Sent", 'Confirmation email is sent to : ' + localStorage.getItem('email'), "success").then(() => {
-
+                                console.log(data);
                             })
                         })
                     })
+                } else {
+                    swal("Oops!", data.message, "error")
+                        .then(() => {
+
+                        });
                 }
             })
         }
@@ -199,7 +276,7 @@ export default class PaymentContainer extends Component {
                     <input type="text" className="form-control" required={true}
                            onChange={this.onCardHoldersNameChange}
                            value={this.state.cardName}
-                           pattern="[a-zA-Z]+"
+                           pattern="[a-zA-Z .]*$"
                            title="Please Enter a valid Name"/>
 
                     <div className="form-group">
@@ -211,7 +288,8 @@ export default class PaymentContainer extends Component {
                     </div>
 
                     <label style={{float: "left"}}>CVC Number : </label>
-                    <input type="number" className="form-control" onChange={this.onCVCNumberChange} required={true}
+                    <input type="text" className="form-control" onChange={this.onCVCNumberChange}
+                           required={true}
                            value={this.state.cvcNum}
                            pattern="[0-9]{3}"
                            title="Please enter the 3 digit Number in the Back"/>
@@ -239,7 +317,7 @@ export default class PaymentContainer extends Component {
                         <input type="text" className="form-control" id="pin" onChange={this.onPINNumberChange}
                                required={true} value={this.state.pinNum}
                                pattern="[0-9]{4}"
-                               title="Please enter a valid Phone Number. Ex: 0771234567"/>
+                               title="Please enter a valid PIN Number of four digits"/>
                     </div>
                 </div>
 
