@@ -113,7 +113,9 @@ export default class PaymentContainer extends Component {
                 const nic = {
                     nic: this.state.nic
                 };
-                axios.post('http://localhost:4000/gov/employee/validate', nic).then(res => {
+                //http://localhost:4000/gov/employee/validate
+
+                axios.post('http://localhost:8280/gov/validate', nic).then(res => {
                     let data = res.data;
                     console.log(data);
                     if (data.success === true) {
