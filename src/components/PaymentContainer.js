@@ -58,7 +58,9 @@ export default class PaymentContainer extends Component {
     onUserIsNotGovernment(e) {
         this.setState({
             userType: 'nonGov',
-            totalBill: localStorage.getItem('total')
+            totalBill: localStorage.getItem('total'),
+            discount: 'no',
+            nic: ''
         })
     }
 
@@ -406,6 +408,27 @@ export default class PaymentContainer extends Component {
                 return null;
             }
         };
+        let showTotalOrSubTotal = () => {
+            if (this.state.discount === 'yes') {
+                return <div>
+                    <label style={{float: "left"}}>Total : </label>
+                    <input type="text" className="form-control" readOnly={true} required={true}
+                           value={"Rs. " + localStorage.getItem('total')}/>
+
+                    <label style={{float: "left"}}>Sub Total : </label>
+                    <input type="text" className="form-control" readOnly={true} required={true}
+                           value={"Rs. " + this.state.totalBill}/>
+
+                </div>
+            } else {
+                return <div>
+                    <label style={{float: "left"}}>Amount : </label>
+                    <input type="text" className="form-control" readOnly={true} required={true}
+                           value={"Rs. " + this.state.totalBill}/>
+
+                </div>
+            }
+        };
 
         return <div>
             <Card border="success" style={{width: '40%'}}>
@@ -452,10 +475,7 @@ export default class PaymentContainer extends Component {
                         </div>
 
                         {govOrNot()}
-
-                        <label style={{float: "left"}}>Amount : </label>
-                        <input type="text" className="form-control" readOnly={true} required={true}
-                               value={"Rs. " + this.state.totalBill}/>
+                        {showTotalOrSubTotal()}
 
                         <Button variant="primary" type="submit" style={{marginTop: "10px"}}>Pay</Button>
                     </form>

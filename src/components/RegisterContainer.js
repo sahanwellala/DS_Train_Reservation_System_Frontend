@@ -4,6 +4,7 @@ import Button from "react-bootstrap/Button";
 import {Link} from "react-router-dom";
 import axios from 'axios';
 import swal from "sweetalert";
+import logo from "../resources/images/logo.png";
 
 export default class RegisterContainer extends Component {
     constructor(props) {
@@ -13,13 +14,17 @@ export default class RegisterContainer extends Component {
             lName: '',
             email: '',
             pwd: '',
-            ConPwd: ''
+            conPwd: '',
+            isEmailValid: true,
+            isPwdMatched: true
         };
         this.onFNameChange = this.onFNameChange.bind(this);
         this.onLNameChange = this.onLNameChange.bind(this);
         this.onEmailChange = this.onEmailChange.bind(this);
         this.onPwdChange = this.onPwdChange.bind(this);
         this.onConPwdChange = this.onConPwdChange.bind(this);
+        this.checkEmailExists = this.checkEmailExists.bind(this);
+        this.checkPasswordMatches = this.checkPasswordMatches.bind(this);
         this.onSubmit = this.onSubmit.bind(this);
     }
 
@@ -49,8 +54,46 @@ export default class RegisterContainer extends Component {
 
     onConPwdChange(e) {
         this.setState({
-            ConPwd: e.target.value
+            conPwd: e.target.value
         })
+    }
+
+    checkEmailExists() {
+
+        let email = {
+            email: this.state.email
+        };
+
+        //http://localhost:4000/users/check-email
+        axios.post('http://localhost:8280/profile/check', email).then(res => {
+            console.log(res.data);
+            let validity = res.data;
+            if (parseInt(validity.count) >= 1) {
+                this.setState({
+                    isEmailValid: false
+                })
+            } else {
+                this.setState({
+                    isEmailValid: true
+                })
+            }
+
+        })
+    }
+
+    //Validating the Passwords
+    checkPasswordMatches() {
+        let pwd = this.state.pwd;
+        let conPwd = this.state.conPwd;
+        if (pwd === conPwd) {
+            this.setState({
+                isPwdMatched: true
+            })
+        } else {
+            this.setState({
+                isPwdMatched: false
+            })
+        }
     }
 
     onSubmit(e) {
@@ -82,36 +125,59 @@ export default class RegisterContainer extends Component {
     }
 
     render() {
+        let checkEmailExists = () => {
+            if (!this.state.isEmailValid) {
+                return <p style={{color: "red"}}>Already Exists Please Enter Another Email !</p>
+            } else {
+                return null
+            }
+        };
+        let passwordMatch = () => {
+            if (!this.state.isPwdMatched) {
+                return <p style={{color: "red"}}>Passwords didn't match !</p>
+            } else {
+                return null;
+            }
+        };
         return <div>
-            <Card border="success" style={{width: '40%', marginTop: "20px"}}>
-                <Card.Header><h4>Register</h4></Card.Header>
+            <Card border="success" style={{width: '40%', marginTop: "0px"}}>
+                <Card.Header><img src={logo} style={{width: "100px", height: "100px"}}/></Card.Header>
                 <Card.Body>
-                    <Card.Title>Please enter the details below</Card.Title>
+                    <Card.Title>Let's get Started. Register from here ...</Card.Title>
                     <form className="form-group" onSubmit={this.onSubmit}>
                         <input type="text" className="form-control" placeholder="First Name"
                                onChange={this.onFNameChange}
                                value={this.state.fName}
+                               pattern="[a-zA-Z .]*$"
+                               title="Please enter a valid name"
                                required={true}/>
                         <input type="text" className="form-control" placeholder="Last Name"
                                onChange={this.onLNameChange}
+                               pattern="[a-zA-Z .]*$"
+                               title="Please enter a valid name"
                                value={this.state.lName}
                                required={true}/>
+                        {checkEmailExists()}
                         <input type="email" className="form-control" placeholder="Email"
                                onChange={this.onEmailChange}
+                               title="Please enter a valid email"
                                value={this.state.email}
+                               onBlur={this.checkEmailExists}
                                required={true}/>
+                        {passwordMatch()}
                         <input type="password" className="form-control" placeholder="Password"
                                onChange={this.onPwdChange}
                                value={this.state.pwd} required={true}/>
                         <input type="password" className="form-control" placeholder="Confirm Password"
                                onChange={this.onConPwdChange}
-                               value={this.state.ConPwd} required={true}/>
+                               value={this.state.conPwd} required={true}
+                               onBlur={this.checkPasswordMatches}/>
 
                         <Button variant="primary" type="submit">Register</Button>
 
-                        <Link to="/">Already has a Account?</Link>
-
                     </form>
+
+                    <Link to="/">Already has a Account?</Link>
                 </Card.Body>
             </Card>
         </div>
