@@ -1,3 +1,7 @@
+//IT17009096
+//Wellala S. S
+
+
 import React, {Component} from 'react';
 import Card from "react-bootstrap/Card";
 import logo from "../resources/images/logo.png";
